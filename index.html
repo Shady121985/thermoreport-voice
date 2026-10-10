@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123047">
+<meta name="description" content="Captura por voz de equipos para ThermoReport">
+<link rel="manifest" href="manifest.webmanifest">
+<title>ThermoReport Voice</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#152433;background:#f2f5f7}
+*{box-sizing:border-box}body{margin:0}header{background:#123047;color:white;padding:20px 18px 18px}header h1{margin:0;font-size:1.45rem}header p{margin:5px 0 0;color:#d6e4ec;font-size:.95rem}
+main{max-width:720px;margin:auto;padding:14px;display:grid;gap:13px}.card{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 9px #122b3b12}
+h2{font-size:1.1rem;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr;gap:10px}label{display:block;font-size:.9rem;font-weight:650;margin-bottom:5px}input,textarea,select{width:100%;font:inherit;font-size:1rem;padding:13px;border:1px solid #bdc9d1;border-radius:10px;background:white;color:#152433}textarea{min-height:76px;resize:vertical}
+button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14px;min-height:54px;cursor:pointer;width:100%}.primary{background:#126a88;color:white}.secondary{background:#e4edf1;color:#123047}.success{background:#18794e;color:white}.danger{background:#fff0ee;color:#9b2c21}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.record{border:1px solid #d6e0e5;border-radius:12px;padding:12px;margin-top:9px}.record strong{display:block}.muted{color:#526573;font-size:.9rem}.status{padding:10px;border-radius:10px;background:#edf4f7;font-size:.92rem;margin-top:10px}.pill{display:inline-block;padding:4px 9px;border-radius:99px;background:#e4edf1;font-size:.8rem;font-weight:700}.small{font-size:.82rem}.hide{display:none!important}
+@media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header><h1>🎙️ ThermoReport Voice</h1><p>Captura de equipos por voz · Excel para ThermoReport</p></header>
+<main>
+<section class="card">
+<h2>1. Datos generales</h2>
+<div class="grid two">
+<div><label for="client">Cliente (opcional)</label><input id="client" placeholder="Nombre del cliente"></div>
+<div><label for="area">Área o departamento</label><input id="area" placeholder="Ej. Subestación Soplado"></div>
+</div>
+<p class="muted small">El área se propone para cada equipo; puedes cambiarla individualmente.</p>
+</section>
+<section class="card">
+<h2>2. Dictar un equipo</h2>
+<p class="muted">Pulsa el botón y di, por ejemplo: “Equipo Transformador TR-07, identificación conexión lado primario H1-H2, capacidad dos mil kVA”.</p>
+<button id="dictate" class="primary">🎙️ Dictar equipo</button>
+<div id="status" class="status" aria-live="polite">Listo para capturar. El reconocimiento de voz depende del navegador y puede requerir internet.</div>
+<div class="grid" style="margin-top:12px">
+<div><label for="equipment">Equipo</label><input id="equipment" placeholder="Nombre o descripción del equipo"></div>
+<div><label for="identification">Identificación</label><input id="identification" placeholder="Punto o conexión inspeccionada"></div>
+<div><label for="capacity">Capacidad</label><input id="capacity" placeholder="Ej. 440 VCA, 2,000 kVA, 3,200 Amp."></div>
+</div>
+<details style="margin-top:12px"><summary><strong>Campos manuales opcionales</strong></summary>
+<div class="grid two" style="margin-top:12px">
+<div><label for="on">Estado ON</label><select id="on"><option value="">Sin seleccionar</option><option value="ü">Sí (ü)</option><option value="—">No / raya</option></select></div>
+<div><label for="off">Estado OFF</label><select id="off"><option value="">Sin seleccionar</option><option value="ü">Sí (ü)</option><option value="—">No / raya</option></select></div>
+<div><label for="priority">Prioridad / Punto (opcional)</label><input id="priority" placeholder="Se asigna consecutivo si queda vacío"></div>
+<div><label for="observations">Observaciones</label><textarea id="observations" placeholder="Notas adicionales"></textarea></div>
+</div>
+</details>
+<div class="actions" style="margin-top:14px"><button id="save" class="success">＋ Guardar equipo</button><button id="clear" class="secondary">Limpiar campos</button></div>
+</section>
+<section class="card">
+<h2>3. Equipos capturados <span class="pill" id="count">0</span></h2>
+<div id="records"><p class="muted">Aún no hay equipos guardados.</p></div>
+<div class="actions" style="margin-top:14px"><button id="export" class="primary">⬇ Exportar Excel</button><button id="backup" class="secondary">Guardar respaldo JSON</button></div>
+<button id="importBtn" class="secondary" style="margin-top:9px">Importar respaldo JSON</button><input type="file" id="importFile" accept=".json,application/json" class="hide">
+<p class="muted small">Los datos se guardan en este dispositivo mientras no borres los datos del navegador. Exporta respaldos periódicamente. El archivo conserva las columnas A–H de Hoja1; las columnas auxiliares I–J no se generan porque son fórmulas auxiliares del archivo de origen.</p>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const STORAGE='thermoreport_voice_records_v1';
+let records=[];
+try{records=JSON.parse(localStorage.getItem(STORAGE)||'[]')}catch(e){}
+function persist(){localStorage.setItem(STORAGE,JSON.stringify(records));render()}
+function nextPoint(){return records.length+1}
+function render(){
+ $('count').textContent=records.length;
+ const root=$('records');
+ if(!records.length){root.innerHTML='<p class="muted">Aún no hay equipos guardados.</p>';return}
+ root.innerHTML='';
+ records.forEach((r,i)=>{
+  const div=document.createElement('div');div.className='record';
+  const title=document.createElement('strong');title.textContent=`${i+1}. ${r.equipment||'(Equipo sin nombre)'}`;
+  const info=document.createElement('div');info.className='muted';info.textContent=`${r.area||''} · ${r.identification||''} · ${r.capacity||''}`;
+  const row=document.createElement('div');row.className='actions';row.style.marginTop='8px';
+  const edit=document.createElement('button');edit.className='secondary';edit.textContent='Editar';edit.onclick=()=>loadRecord(i);
+  const del=document.createElement('button');del.className='danger';del.textContent='Eliminar';del.onclick=()=>{if(confirm('¿Eliminar este equipo?')){records.splice(i,1);persist()}};
+  row.append(edit,del);div.append(title,info,row);root.append(div);
+ });
+}
+function loadRecord(i){const r=records[i];['area','equipment','identification','capacity','on','off','priority','observations'].forEach(k=>$(k).value=r[k]||'');records.splice(i,1);persist();window.scrollTo({top:0,behavior:'smooth'});$('status').textContent='Edita el registro y pulsa Guardar equipo.'}
+function clearFields(){['equipment','identification','capacity','on','off','priority','observations'].forEach(k=>$(k).value='');$('equipment').focus()}
+$('save').onclick=()=>{
+ const equipment=$('equipment').value.trim(), identification=$('identification').value.trim(), capacity=$('capacity').value.trim();
+ if(!equipment||!identification){alert('Amor, completa al menos Equipo e Identificación antes de guardar.');return}
+ records.push({area:$('area').value.trim(),equipment,identification,capacity,on:$('on').value,off:$('off').value,priority:$('priority').value.trim()||String(nextPoint()),observations:$('observations').value.trim()});
+ persist();clearFields();$('status').textContent='Equipo guardado en este dispositivo. ¡Listo para el siguiente!';
+};
+$('clear').onclick=clearFields;
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+$('dictate').onclick=()=>{
+ if(!SpeechRecognition){$('status').textContent='Este navegador no ofrece reconocimiento de voz. Prueba Chrome en Android o dicta usando el micrófono del teclado.';return}
+ const rec=new SpeechRecognition();rec.lang='es-MX';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
+ $('status').textContent='🎙️ Escuchando… dicta equipo, identificación y capacidad.';
+ rec.onresult=e=>{
+  const transcript=e.results[0][0].transcript;
+  $('status').textContent='Transcripción: '+transcript+' — revisa los campos antes de guardar.';
+  // Heuristic parsing: only populate fields when the speaker uses explicit labels.
+  const parts=transcript.split(/[,.;]\s*/);
+  parts.forEach(p=>{
+   let m;
+   if((m=p.match(/^(?:equipo)\s+(.+)/i))) $('equipment').value=m[1].trim();
+   else if((m=p.match(/^(?:identificación|identificacion|punto)\s+(.+)/i))) $('identification').value=m[1].trim();
+   else if((m=p.match(/^(?:capacidad)\s+(.+)/i))) $('capacity').value=m[1].trim();
+   else if((m=p.match(/^(?:área|area|departamento)\s+(.+)/i))) $('area').value=m[1].trim();
+  });
+  if(!$('equipment').value&&!$('identification').value&&!$('capacity').value){$('identification').value=transcript;$('status').textContent+=' (La transcripción quedó en Identificación para que la distribuyas manualmente.)'}
+ };
+ rec.onerror=e=>$('status').textContent='No se pudo reconocer la voz ('+e.error+'). Puedes escribir los datos o usar el micrófono del teclado.';
+ rec.onend=()=>{};
+ try{rec.start()}catch(e){$('status').textContent='No se pudo iniciar el micrófono. Revisa permisos del navegador.'}
+};
+$('export').onclick=()=>{
+ if(!records.length){alert('Primero guarda al menos un equipo.');return}
+ const rows=[['AREA O DEPARTAMENTO','EQUIPO','IDENTIFICACIÓN','CAPACIDAD','ESTADO','','PRIORIDAD / PUNTO','OBSERVACIONES'],['','','','','On','Off','','']];
+ records.forEach((r,i)=>rows.push([r.area,r.equipment,r.identification,r.capacity,r.on,r.off,r.priority||String(i+1),r.observations]));
+ const date=new Date().toISOString().slice(0,10),name='ThermoReport_Voice_'+date+'.xlsx';
+ if(window.XLSX){
+  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!merges']=[{s:{r:0,c:4},e:{r:0,c:5}}];
+  ws['!cols']=[{wch:28},{wch:38},{wch:38},{wch:18},{wch:10},{wch:10},{wch:18},{wch:38}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Hoja1');XLSX.writeFile(wb,name);
+ }else{
+  const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name.replace('.xlsx','.csv');a.click();URL.revokeObjectURL(a.href);
+  alert('No se cargó el módulo XLSX; se exportó CSV compatible con Excel.');
+ }
+};
+$('backup').onclick=()=>download(JSON.stringify({app:'ThermoReport Voice',version:'0.1.0',records},null,2),'ThermoReport_Voice_respaldo.json','application/json');
+function download(data,name,type){const blob=new Blob([data],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.records))throw Error();if(confirm('¿Reemplazar la captura actual con '+d.records.length+' registros del respaldo?')){records=d.records;persist()}}catch(err){alert('El archivo no parece ser un respaldo válido de ThermoReport Voice.')}e.target.value=''};
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+render();
+</script>
+</body></html>
