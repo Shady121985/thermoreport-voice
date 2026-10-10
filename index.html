@@ -29,10 +29,14 @@ button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14p
 </section>
 <section class="card">
 <h2>2. Dictar un equipo</h2>
-<p class="muted">Pulsa el botón y di, por ejemplo: “Equipo Transformador TR-07, identificación conexión lado primario H1-H2, capacidad dos mil kVA”.</p>
-<button id="dictate" class="primary">🎙️ Dictar equipo</button>
+<p class="muted">Dicta la ficha completa de corrido. Usa etiquetas como Área, Equipo, Identificación, Capacidad, Prioridad y Observaciones para distribuir el texto.</p>
+<div class="status"><strong>Ejemplo:</strong> “Área subestación, equipo transformador TR cero siete, identificación lado primario H uno H dos, capacidad dos mil kVA, estado encendido, prioridad dos, observaciones apartarrayos con calentamiento anormal”.</div>
+<button id="dictate" class="primary">🎙️ Dictar ficha completa</button>
+<button id="keyboardDictation" class="secondary" style="margin-top:9px">⌨️ Usar dictado del teclado del iPhone</button>
 <div id="status" class="status" aria-live="polite">Listo para capturar. El reconocimiento de voz depende del navegador y puede requerir internet.</div>
 <div class="grid" style="margin-top:12px">
+<div><label for="transcript">Transcripción completa (puedes corregirla)</label><textarea id="transcript" placeholder="Aquí aparecerá todo lo que dictes de corrido"></textarea></div>
+<div class="actions"><button id="parseTranscript" class="secondary">Distribuir en campos</button><button id="clearTranscript" class="secondary">Borrar transcripción</button></div>
 <div><label for="equipment">Equipo</label><input id="equipment" placeholder="Nombre o descripción del equipo"></div>
 <div><label for="identification">Identificación</label><input id="identification" placeholder="Punto o conexión inspeccionada"></div>
 <div><label for="capacity">Capacidad</label><input id="capacity" placeholder="Ej. 440 VCA, 2,000 kVA, 3,200 Amp."></div>
@@ -88,27 +92,121 @@ $('save').onclick=()=>{
 };
 $('clear').onclick=clearFields;
 const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+let recognitionTimer=null;
+$('keyboardDictation').onclick=()=>{
+ $('status').textContent='Usa el dictado del teclado: toca Equipo, Identificación o Capacidad y pulsa el micrófono del teclado del iPhone. Revisa el texto y guarda.';
+ $('equipment').focus();
+};
 $('dictate').onclick=()=>{
- if(!SpeechRecognition){$('status').textContent='Este navegador no ofrece reconocimiento de voz. Prueba Chrome en Android o dicta usando el micrófono del teclado.';return}
- const rec=new SpeechRecognition();rec.lang='es-MX';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
- $('status').textContent='🎙️ Escuchando… dicta equipo, identificación y capacidad.';
- rec.onresult=e=>{
-  const transcript=e.results[0][0].transcript;
-  $('status').textContent='Transcripción: '+transcript+' — revisa los campos antes de guardar.';
-  // Heuristic parsing: only populate fields when the speaker uses explicit labels.
-  const parts=transcript.split(/[,.;]\s*/);
-  parts.forEach(p=>{
-   let m;
-   if((m=p.match(/^(?:equipo)\s+(.+)/i))) $('equipment').value=m[1].trim();
-   else if((m=p.match(/^(?:identificación|identificacion|punto)\s+(.+)/i))) $('identification').value=m[1].trim();
-   else if((m=p.match(/^(?:capacidad)\s+(.+)/i))) $('capacity').value=m[1].trim();
-   else if((m=p.match(/^(?:área|area|departamento)\s+(.+)/i))) $('area').value=m[1].trim();
-  });
-  if(!$('equipment').value&&!$('identification').value&&!$('capacity').value){$('identification').value=transcript;$('status').textContent+=' (La transcripción quedó en Identificación para que la distribuyas manualmente.)'}
+ if(!SpeechRecognition){
+  $('status').textContent='Este navegador no ofrece reconocimiento de voz web. Usa el dictado del teclado del iPhone para rellenar cada campo.';
+  return;
+ }
+ const rec=new SpeechRecognition();
+ rec.lang='es-MX';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
+ let gotResult=false;
+ $('status').textContent='Solicitando reconocimiento de voz… Si no aparece texto en unos segundos, usa el dictado del teclado.';
+ rec.onstart=()=>{
+   $('status').textContent='🎙️ Safari inició el reconocimiento. Habla ahora y espera la transcripción.';
+   recognitionTimer=setTimeout(()=>{
+    if(!gotResult)$('status').textContent='Safari activó el micrófono, pero no entregó texto. Puede ser una limitación del reconocimiento de voz de iOS. Usa el dictado del teclado del iPhone.';
+   },7000);
  };
- rec.onerror=e=>$('status').textContent='No se pudo reconocer la voz ('+e.error+'). Puedes escribir los datos o usar el micrófono del teclado.';
- rec.onend=()=>{};
- try{rec.start()}catch(e){$('status').textContent='No se pudo iniciar el micrófono. Revisa permisos del navegador.'}
+ rec.onaudiostart=()=>{$('status').textContent='Micrófono activo. Habla ahora…'};
+ rec.onspeechstart=()=>{$('status').textContent='Te estoy escuchando…'};
+ rec.onresult=e=>{
+   gotResult=true;clearTimeout(recognitionTimer);
+   let transcript='';
+   for(let i=e.resultIndex;i<e.results.length;i++) transcript+=e.results[i][0].transcript+' ';
+   transcript=transcript.trim();
+   $('status').textContent='Transcripción detectada: '+transcript+' — revisa los campos antes de guardar.';
+   const parts=transcript.split(/[,.;]\s*/);
+   parts.forEach(p=>{
+    let m;
+    if((m=p.match(/^(?:equipo)\s+(.+)/i))) $('equipment').value=m[1].trim();
+    else if((m=p.match(/^(?:identificación|identificacion|punto)\s+(.+)/i))) $('identification').value=m[1].trim();
+    else if((m=p.match(/^(?:capacidad)\s+(.+)/i))) $('capacity').value=m[1].trim();
+    else if((m=p.match(/^(?:área|area|departamento)\s+(.+)/i))) $('area').value=m[1].trim();
+   });
+   if(!$('equipment').value&&!$('identification').value&&!$('capacity').value){
+    $('identification').value=transcript;
+    $('status').textContent+=' (El dictado completo quedó en Identificación; distribúyelo manualmente si hace falta.)';
+   }
+ };
+ rec.onerror=e=>{
+  clearTimeout(recognitionTimer);
+  $('status').textContent='Error de reconocimiento: '+(e.error||'desconocido')+'. Si el permiso está concedido, usa el dictado del teclado del iPhone.';
+ };
+ rec.onend=()=>{
+  clearTimeout(recognitionTimer);
+  if(!gotResult)$('status').textContent='El reconocimiento terminó sin devolver texto. Usa el dictado del teclado del iPhone como alternativa.';
+ };
+ rec.onspeechend=()=>{$('status').textContent='Fin de voz detectado; esperando transcripción…'};
+ try{rec.start()}catch(e){clearTimeout(recognitionTimer);$('status').textContent='No se pudo iniciar el reconocimiento ('+e.message+'). Usa el dictado del teclado del iPhone.'}
+};
+
+// Dictado continuo de ficha completa y normalización de términos eléctricos.
+function normalizeElectricalTerms(text){
+ return text
+  .replace(/\bka\s*uve\s*a\s*erre\b/gi,'kVAr')
+  .replace(/\bkilovoltamperes?\s+reactivos?\b/gi,'kVAr')
+  .replace(/\bka\s*uve\s*a\b/gi,'kVA')
+  .replace(/\bkilovoltamperes?\b/gi,'kVA')
+  .replace(/\bkilovolts?\b/gi,'kV')
+  .replace(/\bvolts?\s+de\s+corriente\s+alterna\b/gi,'VCA')
+  .replace(/\bve\s*ce\s*a\b/gi,'VCA')
+  .replace(/\bvolts?\s+de\s+corriente\s+directa\b/gi,'VCD')
+  .replace(/\bve\s*ce\s*de\b/gi,'VCD')
+  .replace(/\b(amperes|amperios|ampers?)\b/gi,'A')
+  .replace(/\bencendido\b/gi,'ON')
+  .replace(/\bapagado\b/gi,'OFF')
+  .replace(/\s+/g,' ').trim();
+}
+function parseTranscript(){
+ const t=normalizeElectricalTerms($('transcript').value);
+ if(!t){$('status').textContent='Primero dicta o escribe la ficha completa.';return}
+ const patterns=[
+  ['area',/(?:^|[,.;]\s*|\s)(?:área|area|departamento)\s+/i],
+  ['equipment',/(?:^|[,.;]\s*|\s)equipo\s+/i],
+  ['identification',/(?:^|[,.;]\s*|\s)(?:identificación|identificacion|punto|conexión|conexion)\s+/i],
+  ['capacity',/(?:^|[,.;]\s*|\s)capacidad\s+/i],
+  ['priority',/(?:^|[,.;]\s*|\s)prioridad\s+/i],
+  ['observations',/(?:^|[,.;]\s*|\s)(?:observaciones|observación|observacion)\s+/i]
+ ];
+ const labels=[];
+ patterns.forEach(([key,re])=>{const m=re.exec(t);if(m)labels.push({key,start:m.index+m[0].length,labelStart:m.index})});
+ labels.sort((a,b)=>a.labelStart-b.labelStart);
+ labels.forEach((item,i)=>{
+  const value=t.slice(item.start,i+1<labels.length?labels[i+1].labelStart:t.length).replace(/^[,.;:\s]+|[,.;:\s]+$/g,'').trim();
+  $(item.key).value=value;
+ });
+ if(/\bON\b/i.test(t)) $('on').value='ü';
+ if(/\bOFF\b/i.test(t)) $('off').value='ü';
+ $('status').textContent=labels.length?'Ficha distribuida. Revisa los campos antes de guardar.':'No detecté etiquetas. Usa palabras como Área, Equipo, Identificación o Capacidad.';
+}
+$('parseTranscript').onclick=parseTranscript;
+$('clearTranscript').onclick=()=>{$('transcript').value='';$('status').textContent='Transcripción borrada.'};
+$('keyboardDictation').onclick=()=>{
+ $('status').textContent='Toca Transcripción completa y luego el micrófono del teclado del iPhone. Dicta toda la ficha de corrido y pulsa Distribuir en campos.';
+ $('transcript').focus();
+};
+$('dictate').onclick=()=>{
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){$('status').textContent='Este navegador no ofrece reconocimiento web. Usa el dictado del teclado del iPhone en Transcripción completa.';$('transcript').focus();return}
+ const rec=new SR();rec.lang='es-MX';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
+ let gotResult=false;
+ $('status').textContent='Solicitando reconocimiento de voz…';
+ const timer=setTimeout(()=>{if(!gotResult)$('status').textContent='El micrófono inició, pero no llegó texto. Prueba el dictado del teclado del iPhone.'},7000);
+ rec.onstart=()=>{$('status').textContent='🎙️ Dicta de corrido usando las etiquetas Área, Equipo, Identificación, Capacidad, Prioridad y Observaciones.'};
+ rec.onaudiostart=()=>{$('status').textContent='Micrófono activo. Dicta toda la ficha…'};
+ rec.onresult=e=>{
+  gotResult=true;clearTimeout(timer);
+  let text='';for(let i=e.resultIndex;i<e.results.length;i++)text+=e.results[i][0].transcript+' ';
+  $('transcript').value=text.trim();parseTranscript();
+ };
+ rec.onerror=e=>{clearTimeout(timer);$('status').textContent='Error de reconocimiento: '+(e.error||'desconocido')+'. Prueba el dictado del teclado del iPhone.'};
+ rec.onend=()=>{clearTimeout(timer);if(!gotResult)$('status').textContent='El reconocimiento terminó sin texto. Usa el dictado del teclado del iPhone.'};
+ try{rec.start()}catch(e){clearTimeout(timer);$('status').textContent='No se pudo iniciar el reconocimiento. Usa el dictado del teclado del iPhone.'}
 };
 $('export').onclick=()=>{
  if(!records.length){alert('Primero guarda al menos un equipo.');return}
@@ -125,7 +223,7 @@ $('export').onclick=()=>{
   alert('No se cargó el módulo XLSX; se exportó CSV compatible con Excel.');
  }
 };
-$('backup').onclick=()=>download(JSON.stringify({app:'ThermoReport Voice',version:'0.1.0',records},null,2),'ThermoReport_Voice_respaldo.json','application/json');
+$('backup').onclick=()=>download(JSON.stringify({app:'ThermoReport Voice',version:'0.2.0',records},null,2),'ThermoReport_Voice_respaldo.json','application/json');
 function download(data,name,type){const blob=new Blob([data],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
 $('importBtn').onclick=()=>$('importFile').click();
 $('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.records))throw Error();if(confirm('¿Reemplazar la captura actual con '+d.records.length+' registros del respaldo?')){records=d.records;persist()}}catch(err){alert('El archivo no parece ser un respaldo válido de ThermoReport Voice.')}e.target.value=''};
