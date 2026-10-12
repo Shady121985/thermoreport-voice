@@ -59,7 +59,7 @@ button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14p
 <section class="card">
 <h2>3. Equipos capturados <span class="pill" id="count">0</span></h2>
 <div id="records"><p class="muted">Aún no hay equipos guardados.</p></div>
-<div class="actions" style="margin-top:14px"><button id="export" class="primary">⬇ Exportar Excel</button><button id="backup" class="secondary">Guardar respaldo JSON</button></div>
+<div class="actions" style="margin-top:14px"><button id="export" class="primary">⬇ Exportar Excel</button><button id="shareExcel" class="secondary">📤 Compartir por correo / WhatsApp</button><button id="backup" class="secondary">Guardar respaldo JSON</button></div>
 <button id="clearList" class="danger" style="margin-top:9px">🗑️ Limpiar toda la lista</button>
 <p class="muted small">Este botón elimina todos los puntos guardados de esta lista en el dispositivo. Exporta a Excel o guarda un respaldo JSON antes de usarlo.</p>
 <button id="importBtn" class="secondary" style="margin-top:9px">Importar respaldo JSON</button><input type="file" id="importFile" accept=".json,application/json" class="hide">
@@ -249,7 +249,29 @@ $('export').onclick=()=>{
   alert('No se cargó el módulo XLSX; se exportó CSV compatible con Excel.');
  }
 };
-$('backup').onclick=()=>download(JSON.stringify({app:'ThermoReport Voice',version:'0.4.0',records},null,2),'ThermoReport_Voice_respaldo.json','application/json');
+
+$('shareExcel').onclick=async()=>{
+ if(!records.length){alert('Primero guarda al menos un equipo.');return}
+ const rows=[['AREA O DEPARTAMENTO','EQUIPO','IDENTIFICACIÓN','CAPACIDAD','ESTADO','','PRIORIDAD / PUNTO','OBSERVACIONES'],['','','','','On','Off','','']];
+ records.forEach((r,i)=>rows.push([r.area,r.equipment,r.identification,r.capacity,r.on,r.off,r.priority||String(i+1),r.observations]));
+ const csv='\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+ const file=new File([blob],'ThermoReport_Voice.csv',{type:'text/csv'});
+ try{
+   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+     await navigator.share({files:[file],title:'ThermoReport Voice - Inspección',text:'Archivo de captura de la inspección. Puedes enviarlo por Correo o WhatsApp.'});
+   }else{
+     download(csv,'ThermoReport_Voice.csv','text/csv;charset=utf-8;');
+     alert('Este navegador no permite adjuntar directamente el archivo al menú Compartir. Se descargó un CSV compatible con Excel; adjúntalo desde Correo o WhatsApp.');
+   }
+ }catch(err){
+   if(err && err.name==='AbortError') return;
+   download(csv,'ThermoReport_Voice.csv','text/csv;charset=utf-8;');
+   alert('No se pudo abrir Compartir. Descargué el archivo para que puedas adjuntarlo manualmente.');
+ }
+};
+
+$('backup').onclick=()=>download(JSON.stringify({app:'ThermoReport Voice',version:'0.5.0',records},null,2),'ThermoReport_Voice_respaldo.json','application/json');
 function download(data,name,type){const blob=new Blob([data],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
 $('clearList').onclick=()=>{
  if(!records.length){alert('La lista ya está vacía.');return}
