@@ -12,7 +12,7 @@
 *{box-sizing:border-box}body{margin:0}header{background:#123047;color:white;padding:20px 18px 18px}header h1{margin:0;font-size:1.45rem}header p{margin:5px 0 0;color:#d6e4ec;font-size:.95rem}
 main{max-width:720px;margin:auto;padding:14px;display:grid;gap:13px}.card{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 9px #122b3b12}
 h2{font-size:1.1rem;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr;gap:10px}label{display:block;font-size:.9rem;font-weight:650;margin-bottom:5px}input,textarea,select{width:100%;font:inherit;font-size:1rem;padding:13px;border:1px solid #bdc9d1;border-radius:10px;background:white;color:#152433}textarea{min-height:76px;resize:vertical}
-button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14px;min-height:54px;cursor:pointer;width:100%}.primary{background:#126a88;color:white}.secondary{background:#e4edf1;color:#123047}.success{background:#18794e;color:white}.danger{background:#fff0ee;color:#9b2c21}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.record{border:1px solid #d6e0e5;border-radius:12px;padding:12px;margin-top:9px}.record strong{display:block}.muted{color:#526573;font-size:.9rem}.status{padding:10px;border-radius:10px;background:#edf4f7;font-size:.92rem;margin-top:10px}.pill{display:inline-block;padding:4px 9px;border-radius:99px;background:#e4edf1;font-size:.8rem;font-weight:700}.small{font-size:.82rem}.hide{display:none!important}
+button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14px;min-height:54px;cursor:pointer;width:100%}.primary{background:#126a88;color:white}.secondary{background:#e4edf1;color:#123047}.success{background:#18794e;color:white}.danger{background:#fff0ee;color:#9b2c21}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.actions input{min-width:0}.field-record{font-size:.92rem;min-height:46px;padding:10px}.record{border:1px solid #d6e0e5;border-radius:12px;padding:12px;margin-top:9px}.record strong{display:block}.muted{color:#526573;font-size:.9rem}.status{padding:10px;border-radius:10px;background:#edf4f7;font-size:.92rem;margin-top:10px}.pill{display:inline-block;padding:4px 9px;border-radius:99px;background:#e4edf1;font-size:.8rem;font-weight:700}.small{font-size:.82rem}.hide{display:none!important}
 @media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -37,16 +37,20 @@ button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14p
 <div class="grid" style="margin-top:12px">
 <div><label for="transcript">Transcripción completa (puedes corregirla)</label><textarea id="transcript" placeholder="Aquí aparecerá todo lo que dictes de corrido"></textarea></div>
 <div class="actions"><button id="parseTranscript" class="secondary">Distribuir en campos</button><button id="clearTranscript" class="secondary">Borrar transcripción</button></div>
-<div><label for="equipment">Equipo</label><input id="equipment" placeholder="Nombre o descripción del equipo"></div>
-<div><label for="identification">Identificación</label><input id="identification" placeholder="Punto o conexión inspeccionada"></div>
-<div><label for="capacity">Capacidad</label><input id="capacity" placeholder="Ej. 440 VCA, 2,000 kVA, 3,200 Amp."></div>
+<div>
+<label for="equipment">Equipo</label>
+<div class="actions"><input id="equipment" placeholder="Nombre o descripción del equipo"><button id="clearEquipment" type="button" class="secondary">Limpiar equipo</button></div>
+<button type="button" class="secondary field-record" data-target="equipment" style="margin-top:7px">🎙️ Grabar equipo</button>
+</div>
+<div><label for="identification">Identificación</label><input id="identification" placeholder="Punto o conexión inspeccionada"><button type="button" class="secondary field-record" data-target="identification" style="margin-top:7px">🎙️ Grabar identificación</button></div>
+<div><label for="capacity">Capacidad</label><input id="capacity" placeholder="Ej. 440 VCA, 2,000 kVA, 3,200 Amp."><button type="button" class="secondary field-record" data-target="capacity" style="margin-top:7px">🎙️ Grabar capacidad</button></div>
 </div>
 <details style="margin-top:12px"><summary><strong>Campos manuales opcionales</strong></summary>
 <div class="grid two" style="margin-top:12px">
 <div><label for="on">Estado ON</label><select id="on"><option value="">Sin seleccionar</option><option value="ü">Sí (ü)</option><option value="—">No / raya</option></select></div>
 <div><label for="off">Estado OFF</label><select id="off"><option value="">Sin seleccionar</option><option value="ü">Sí (ü)</option><option value="—">No / raya</option></select></div>
-<div><label for="priority">Prioridad / Punto (opcional)</label><input id="priority" placeholder="Se asigna consecutivo si queda vacío"></div>
-<div><label for="observations">Observaciones</label><textarea id="observations" placeholder="Notas adicionales"></textarea></div>
+<div><label for="priority">Prioridad / Punto (opcional)</label><input id="priority" placeholder="Se asigna consecutivo si queda vacío"><button type="button" class="secondary field-record" data-target="priority" style="margin-top:7px">🎙️ Grabar prioridad</button></div>
+<div><label for="observations">Observaciones</label><textarea id="observations" placeholder="Notas adicionales"></textarea><button type="button" class="secondary field-record" data-target="observations" style="margin-top:7px">🎙️ Grabar observaciones</button></div>
 </div>
 </details>
 <div class="actions" style="margin-top:14px"><button id="save" class="success">＋ Guardar equipo</button><button id="clear" class="secondary">Limpiar campos</button></div>
@@ -63,10 +67,13 @@ button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14p
 <script>
 const $=id=>document.getElementById(id);
 const STORAGE='thermoreport_voice_records_v1';
+const EQUIPMENT_STORAGE='thermoreport_voice_last_equipment_v1';
 let records=[];
+let editingIndex=null;
 try{records=JSON.parse(localStorage.getItem(STORAGE)||'[]')}catch(e){}
+try{$('equipment').value=localStorage.getItem(EQUIPMENT_STORAGE)||''}catch(e){}
 function persist(){localStorage.setItem(STORAGE,JSON.stringify(records));render()}
-function nextPoint(){return records.length+1}
+function nextPoint(){return String(records.length+1)}
 function render(){
  $('count').textContent=records.length;
  const root=$('records');
@@ -82,70 +89,51 @@ function render(){
   row.append(edit,del);div.append(title,info,row);root.append(div);
  });
 }
-function loadRecord(i){const r=records[i];['area','equipment','identification','capacity','on','off','priority','observations'].forEach(k=>$(k).value=r[k]||'');records.splice(i,1);persist();window.scrollTo({top:0,behavior:'smooth'});$('status').textContent='Edita el registro y pulsa Guardar equipo.'}
-function clearFields(){['equipment','identification','capacity','on','off','priority','observations'].forEach(k=>$(k).value='');$('equipment').focus()}
+function loadRecord(i){
+ const r=records[i];editingIndex=i;
+ ['area','equipment','identification','capacity','on','off','priority','observations'].forEach(k=>$(k).value=r[k]||'');
+ window.scrollTo({top:0,behavior:'smooth'});
+ $('status').textContent=`Editando el punto ${i+1}. Al guardar, conservará su posición original.`;
+ $('save').textContent='✓ Actualizar punto '+(i+1);
+}
+function clearFields(options={}){
+ ['identification','capacity','on','off','priority','observations'].forEach(k=>$(k).value='');
+ if(options.clearEquipment){$('equipment').value='';localStorage.removeItem(EQUIPMENT_STORAGE)}
+ $('identification').focus();
+}
 $('save').onclick=()=>{
  const equipment=$('equipment').value.trim(), identification=$('identification').value.trim(), capacity=$('capacity').value.trim();
  if(!equipment||!identification){alert('Amor, completa al menos Equipo e Identificación antes de guardar.');return}
- records.push({area:$('area').value.trim(),equipment,identification,capacity,on:$('on').value,off:$('off').value,priority:$('priority').value.trim()||String(nextPoint()),observations:$('observations').value.trim()});
- persist();clearFields();$('status').textContent='Equipo guardado en este dispositivo. ¡Listo para el siguiente!';
+ const item={area:$('area').value.trim(),equipment,identification,capacity,on:$('on').value,off:$('off').value,priority:$('priority').value.trim()||String(editingIndex!==null?editingIndex+1:nextPoint()),observations:$('observations').value.trim()};
+ if(editingIndex!==null){
+  records[editingIndex]=item;
+  const updated=editingIndex+1;
+  editingIndex=null;
+  $('save').textContent='＋ Guardar equipo';
+  persist();
+  clearFields();
+  $('status').textContent=`Punto ${updated} actualizado en su posición original. El equipo permanece seleccionado.`;
+ }else{
+  records.push(item);
+  persist();
+  clearFields();
+  $('status').textContent='Punto guardado. El equipo permanece seleccionado para el siguiente registro.';
+ }
+ localStorage.setItem(EQUIPMENT_STORAGE,equipment);
+ $('equipment').value=equipment;
 };
-$('clear').onclick=clearFields;
+$('clear').onclick=()=>{editingIndex=null;$('save').textContent='＋ Guardar equipo';clearFields();$('status').textContent='Se limpiaron los campos del punto; el equipo se conserva.'};
+$('clearEquipment').onclick=()=>{
+ if(confirm('¿Limpiar solo el nombre del equipo? Los puntos guardados no se borrarán.')){
+  $('equipment').value='';localStorage.removeItem(EQUIPMENT_STORAGE);
+  $('status').textContent='Equipo limpiado. Los puntos guardados se conservaron.';
+ }
+};
+$('equipment').addEventListener('change',()=>localStorage.setItem(EQUIPMENT_STORAGE,$('equipment').value));
+$('equipment').addEventListener('input',()=>localStorage.setItem(EQUIPMENT_STORAGE,$('equipment').value));
+
 const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 let recognitionTimer=null;
-$('keyboardDictation').onclick=()=>{
- $('status').textContent='Usa el dictado del teclado: toca Equipo, Identificación o Capacidad y pulsa el micrófono del teclado del iPhone. Revisa el texto y guarda.';
- $('equipment').focus();
-};
-$('dictate').onclick=()=>{
- if(!SpeechRecognition){
-  $('status').textContent='Este navegador no ofrece reconocimiento de voz web. Usa el dictado del teclado del iPhone para rellenar cada campo.';
-  return;
- }
- const rec=new SpeechRecognition();
- rec.lang='es-MX';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
- let gotResult=false;
- $('status').textContent='Solicitando reconocimiento de voz… Si no aparece texto en unos segundos, usa el dictado del teclado.';
- rec.onstart=()=>{
-   $('status').textContent='🎙️ Safari inició el reconocimiento. Habla ahora y espera la transcripción.';
-   recognitionTimer=setTimeout(()=>{
-    if(!gotResult)$('status').textContent='Safari activó el micrófono, pero no entregó texto. Puede ser una limitación del reconocimiento de voz de iOS. Usa el dictado del teclado del iPhone.';
-   },7000);
- };
- rec.onaudiostart=()=>{$('status').textContent='Micrófono activo. Habla ahora…'};
- rec.onspeechstart=()=>{$('status').textContent='Te estoy escuchando…'};
- rec.onresult=e=>{
-   gotResult=true;clearTimeout(recognitionTimer);
-   let transcript='';
-   for(let i=e.resultIndex;i<e.results.length;i++) transcript+=e.results[i][0].transcript+' ';
-   transcript=transcript.trim();
-   $('status').textContent='Transcripción detectada: '+transcript+' — revisa los campos antes de guardar.';
-   const parts=transcript.split(/[,.;]\s*/);
-   parts.forEach(p=>{
-    let m;
-    if((m=p.match(/^(?:equipo)\s+(.+)/i))) $('equipment').value=m[1].trim();
-    else if((m=p.match(/^(?:identificación|identificacion|punto)\s+(.+)/i))) $('identification').value=m[1].trim();
-    else if((m=p.match(/^(?:capacidad)\s+(.+)/i))) $('capacity').value=m[1].trim();
-    else if((m=p.match(/^(?:área|area|departamento)\s+(.+)/i))) $('area').value=m[1].trim();
-   });
-   if(!$('equipment').value&&!$('identification').value&&!$('capacity').value){
-    $('identification').value=transcript;
-    $('status').textContent+=' (El dictado completo quedó en Identificación; distribúyelo manualmente si hace falta.)';
-   }
- };
- rec.onerror=e=>{
-  clearTimeout(recognitionTimer);
-  $('status').textContent='Error de reconocimiento: '+(e.error||'desconocido')+'. Si el permiso está concedido, usa el dictado del teclado del iPhone.';
- };
- rec.onend=()=>{
-  clearTimeout(recognitionTimer);
-  if(!gotResult)$('status').textContent='El reconocimiento terminó sin devolver texto. Usa el dictado del teclado del iPhone como alternativa.';
- };
- rec.onspeechend=()=>{$('status').textContent='Fin de voz detectado; esperando transcripción…'};
- try{rec.start()}catch(e){clearTimeout(recognitionTimer);$('status').textContent='No se pudo iniciar el reconocimiento ('+e.message+'). Usa el dictado del teclado del iPhone.'}
-};
-
-// Dictado continuo de ficha completa y normalización de términos eléctricos.
 function normalizeElectricalTerms(text){
  return text
   .replace(/\bka\s*uve\s*a\s*erre\b/gi,'kVAr')
@@ -170,43 +158,78 @@ function parseTranscript(){
   ['equipment',/(?:^|[,.;]\s*|\s)equipo\s+/i],
   ['identification',/(?:^|[,.;]\s*|\s)(?:identificación|identificacion|punto|conexión|conexion)\s+/i],
   ['capacity',/(?:^|[,.;]\s*|\s)capacidad\s+/i],
+  ['on',/(?:^|[,.;]\s*|\s)estado\s+(?:encendido|prendido|on)\b/i],
+  ['off',/(?:^|[,.;]\s*|\s)estado\s+(?:apagado|off)\b/i],
   ['priority',/(?:^|[,.;]\s*|\s)prioridad\s+/i],
   ['observations',/(?:^|[,.;]\s*|\s)(?:observaciones|observación|observacion)\s+/i]
  ];
  const labels=[];
- patterns.forEach(([key,re])=>{const m=re.exec(t);if(m)labels.push({key,start:m.index+m[0].length,labelStart:m.index})});
+ patterns.forEach(([key,re])=>{
+  const m=re.exec(t);if(m){
+   const valueStart=m.index+m[0].length;
+   labels.push({key,start:valueStart,labelStart:m.index,match:m[0]});
+  }
+ });
  labels.sort((a,b)=>a.labelStart-b.labelStart);
  labels.forEach((item,i)=>{
-  const value=t.slice(item.start,i+1<labels.length?labels[i+1].labelStart:t.length).replace(/^[,.;:\s]+|[,.;:\s]+$/g,'').trim();
-  $(item.key).value=value;
+  let value=t.slice(item.start,i+1<labels.length?labels[i+1].labelStart:t.length).replace(/^[,.;:\s]+|[,.;:\s]+$/g,'').trim();
+  if(item.key==='on'||item.key==='off'){
+   if(item.key==='on'){$('on').value='ü';value=''}
+   else {$('off').value='ü';value=''}
+  }else{
+   if(item.key==='priority') value=value.replace(/^(?:punto|prioridad)\s*/i,'').trim();
+   $(item.key).value=value;
+  }
  });
- if(/\bON\b/i.test(t)) $('on').value='ü';
- if(/\bOFF\b/i.test(t)) $('off').value='ü';
  $('status').textContent=labels.length?'Ficha distribuida. Revisa los campos antes de guardar.':'No detecté etiquetas. Usa palabras como Área, Equipo, Identificación o Capacidad.';
 }
 $('parseTranscript').onclick=parseTranscript;
 $('clearTranscript').onclick=()=>{$('transcript').value='';$('status').textContent='Transcripción borrada.'};
 $('keyboardDictation').onclick=()=>{
- $('status').textContent='Toca Transcripción completa y luego el micrófono del teclado del iPhone. Dicta toda la ficha de corrido y pulsa Distribuir en campos.';
- $('transcript').focus();
+ $('status').textContent='En iPhone: toca un campo y usa el micrófono del teclado. También tienes un botón Grabar junto a cada campo.';
+ $('equipment').focus();
 };
+function startFieldDictation(target){
+ const field=$(target);
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){
+  $('status').textContent=`El navegador no ofrece dictado de voz web. Toca el campo ${target} y usa el micrófono del teclado del iPhone.`;
+  field.focus();return;
+ }
+ const rec=new SR();rec.lang='es-MX';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
+ let received=false;
+ $('status').textContent=`Preparando dictado para ${target}…`;
+ const timer=setTimeout(()=>{if(!received){$('status').textContent=`No llegó texto para ${target}. Usa el micrófono del teclado del iPhone.`;field.focus()}},8000);
+ rec.onstart=()=>{$('status').textContent=`🎙️ Grabando ${target}. Habla ahora…`};
+ rec.onresult=e=>{
+  received=true;clearTimeout(timer);
+  let text='';for(let i=e.resultIndex;i<e.results.length;i++)text+=e.results[i][0].transcript+' ';
+  text=normalizeElectricalTerms(text.trim());
+  field.value=(field.value.trim()&&target==='observations')?field.value.trim()+' '+text:text;
+  if(target==='on'&&/\b(on|encendido|prendido)\b/i.test(text))field.value='ü';
+  if(target==='off'&&/\b(off|apagado)\b/i.test(text))field.value='ü';
+  if(target==='capacity') field.value=text;
+  if(target==='priority') field.value=text.replace(/^(?:prioridad|punto)\s*/i,'').trim();
+  if(target==='equipment') localStorage.setItem(EQUIPMENT_STORAGE,field.value);
+  $('status').textContent=`Texto recibido en ${target}. Revísalo antes de guardar.`;
+ };
+ rec.onerror=e=>{clearTimeout(timer);$('status').textContent=`No se pudo reconocer ${target} (${e.error||'error'}). Usa el dictado del teclado del iPhone.`;field.focus()};
+ rec.onend=()=>{clearTimeout(timer);if(!received){$('status').textContent=`No se recibió texto para ${target}. Toca el campo y usa el micrófono del teclado del iPhone.`;field.focus()}};
+ try{rec.start()}catch(e){clearTimeout(timer);$('status').textContent=`No se pudo iniciar el dictado de ${target}. Usa el micrófono del teclado del iPhone.`;field.focus()}
+}
+document.querySelectorAll('.field-record').forEach(btn=>btn.addEventListener('click',()=>startFieldDictation(btn.dataset.target)));
 $('dictate').onclick=()=>{
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!SR){$('status').textContent='Este navegador no ofrece reconocimiento web. Usa el dictado del teclado del iPhone en Transcripción completa.';$('transcript').focus();return}
- const rec=new SR();rec.lang='es-MX';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
- let gotResult=false;
+ if(!SR){$('status').textContent='El reconocimiento de voz web no está disponible. Usa los botones Grabar por campo o el dictado del teclado.';$('transcript').focus();return}
+ const rec=new SR();rec.lang='es-MX';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
+ let got=false;
  $('status').textContent='Solicitando reconocimiento de voz…';
- const timer=setTimeout(()=>{if(!gotResult)$('status').textContent='El micrófono inició, pero no llegó texto. Prueba el dictado del teclado del iPhone.'},7000);
- rec.onstart=()=>{$('status').textContent='🎙️ Dicta de corrido usando las etiquetas Área, Equipo, Identificación, Capacidad, Prioridad y Observaciones.'};
- rec.onaudiostart=()=>{$('status').textContent='Micrófono activo. Dicta toda la ficha…'};
- rec.onresult=e=>{
-  gotResult=true;clearTimeout(timer);
-  let text='';for(let i=e.resultIndex;i<e.results.length;i++)text+=e.results[i][0].transcript+' ';
-  $('transcript').value=text.trim();parseTranscript();
- };
- rec.onerror=e=>{clearTimeout(timer);$('status').textContent='Error de reconocimiento: '+(e.error||'desconocido')+'. Prueba el dictado del teclado del iPhone.'};
- rec.onend=()=>{clearTimeout(timer);if(!gotResult)$('status').textContent='El reconocimiento terminó sin texto. Usa el dictado del teclado del iPhone.'};
- try{rec.start()}catch(e){clearTimeout(timer);$('status').textContent='No se pudo iniciar el reconocimiento. Usa el dictado del teclado del iPhone.'}
+ const timer=setTimeout(()=>{if(!got)$('status').textContent='No llegó texto. Usa los botones Grabar por campo o el dictado del teclado.'},8000);
+ rec.onstart=()=>{$('status').textContent='🎙️ Dicta la ficha completa usando las etiquetas Área, Equipo, Identificación, Capacidad, Estado, Prioridad y Observaciones.'};
+ rec.onresult=e=>{got=true;clearTimeout(timer);$('transcript').value=normalizeElectricalTerms(Array.from(e.results).map(r=>r[0].transcript).join(' '));parseTranscript()};
+ rec.onerror=e=>{clearTimeout(timer);$('status').textContent='Error de reconocimiento ('+(e.error||'desconocido')+'). Usa los botones Grabar por campo o el dictado del teclado.'};
+ rec.onend=()=>{clearTimeout(timer);if(!got)$('status').textContent='El reconocimiento terminó sin texto. Usa los botones Grabar por campo o el dictado del teclado.'};
+ try{rec.start()}catch(e){clearTimeout(timer);$('status').textContent='No se pudo iniciar el reconocimiento. Usa los botones Grabar por campo o el dictado del teclado.'}
 };
 $('export').onclick=()=>{
  if(!records.length){alert('Primero guarda al menos un equipo.');return}
@@ -223,7 +246,7 @@ $('export').onclick=()=>{
   alert('No se cargó el módulo XLSX; se exportó CSV compatible con Excel.');
  }
 };
-$('backup').onclick=()=>download(JSON.stringify({app:'ThermoReport Voice',version:'0.2.0',records},null,2),'ThermoReport_Voice_respaldo.json','application/json');
+$('backup').onclick=()=>download(JSON.stringify({app:'ThermoReport Voice',version:'0.3.0',records},null,2),'ThermoReport_Voice_respaldo.json','application/json');
 function download(data,name,type){const blob=new Blob([data],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
 $('importBtn').onclick=()=>$('importFile').click();
 $('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.records))throw Error();if(confirm('¿Reemplazar la captura actual con '+d.records.length+' registros del respaldo?')){records=d.records;persist()}}catch(err){alert('El archivo no parece ser un respaldo válido de ThermoReport Voice.')}e.target.value=''};
