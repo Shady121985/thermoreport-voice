@@ -1,10 +1,9 @@
 {
-  "name": "ThermoReport Voice",
-  "short_name": "TR Voice",
-  "start_url": "./index.html",
+  "name": "PyroSpec ThermoReport Voice",
+  "short_name": "ThermoReport",
+  "start_url": "./?v=040",
   "display": "standalone",
   "background_color": "#f2f5f7",
   "theme_color": "#123047",
-  "description": "Captura por voz de equipos para ThermoReport",
   "icons": []
 }

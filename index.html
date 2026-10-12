@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#123047">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="Captura por voz de equipos para ThermoReport">
 <link rel="manifest" href="manifest.webmanifest">
-<title>ThermoReport Voice</title>
+<title>PyroSpec | ThermoReport Voice</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#152433;background:#f2f5f7}
-*{box-sizing:border-box}body{margin:0}header{background:#123047;color:white;padding:20px 18px 18px}header h1{margin:0;font-size:1.45rem}header p{margin:5px 0 0;color:#d6e4ec;font-size:.95rem}
+*{box-sizing:border-box}body{margin:0}header{background:#123047;color:white;padding:14px 18px 18px;text-align:center}header h1{margin:8px 0 0;font-size:1.35rem}header p{margin:5px 0 0;color:#d6e4ec;font-size:.95rem}.brand-logo{display:block;width:min(230px,68vw);height:auto;max-height:190px;object-fit:contain;margin:0 auto 8px;border-radius:10px;background:#fff}
 main{max-width:720px;margin:auto;padding:14px;display:grid;gap:13px}.card{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 9px #122b3b12}
 h2{font-size:1.1rem;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr;gap:10px}label{display:block;font-size:.9rem;font-weight:650;margin-bottom:5px}input,textarea,select{width:100%;font:inherit;font-size:1rem;padding:13px;border:1px solid #bdc9d1;border-radius:10px;background:white;color:#152433}textarea{min-height:76px;resize:vertical}
 button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14px;min-height:54px;cursor:pointer;width:100%}.primary{background:#126a88;color:white}.secondary{background:#e4edf1;color:#123047}.success{background:#18794e;color:white}.danger{background:#fff0ee;color:#9b2c21}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.actions input{min-width:0}.field-record{font-size:.92rem;min-height:46px;padding:10px}.record{border:1px solid #d6e0e5;border-radius:12px;padding:12px;margin-top:9px}.record strong{display:block}.muted{color:#526573;font-size:.9rem}.status{padding:10px;border-radius:10px;background:#edf4f7;font-size:.92rem;margin-top:10px}.pill{display:inline-block;padding:4px 9px;border-radius:99px;background:#e4edf1;font-size:.8rem;font-weight:700}.small{font-size:.82rem}.hide{display:none!important}
@@ -17,7 +18,7 @@ button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14p
 </style>
 </head>
 <body>
-<header><h1>🎙️ ThermoReport Voice</h1><p>Captura de equipos por voz · Excel para ThermoReport</p></header>
+<header><img class="brand-logo" src="./pyrospec-logo.png" alt="PyroSpec Ingeniería Termográfica"><h1>🎙️ ThermoReport Voice</h1><p>Captura de equipos por voz · Excel para ThermoReport</p></header>
 <main>
 <section class="card">
 <h2>1. Datos generales</h2>
@@ -59,6 +60,8 @@ button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14p
 <h2>3. Equipos capturados <span class="pill" id="count">0</span></h2>
 <div id="records"><p class="muted">Aún no hay equipos guardados.</p></div>
 <div class="actions" style="margin-top:14px"><button id="export" class="primary">⬇ Exportar Excel</button><button id="backup" class="secondary">Guardar respaldo JSON</button></div>
+<button id="clearList" class="danger" style="margin-top:9px">🗑️ Limpiar toda la lista</button>
+<p class="muted small">Este botón elimina todos los puntos guardados de esta lista en el dispositivo. Exporta a Excel o guarda un respaldo JSON antes de usarlo.</p>
 <button id="importBtn" class="secondary" style="margin-top:9px">Importar respaldo JSON</button><input type="file" id="importFile" accept=".json,application/json" class="hide">
 <p class="muted small">Los datos se guardan en este dispositivo mientras no borres los datos del navegador. Exporta respaldos periódicamente. El archivo conserva las columnas A–H de Hoja1; las columnas auxiliares I–J no se generan porque son fórmulas auxiliares del archivo de origen.</p>
 </section>
@@ -246,8 +249,20 @@ $('export').onclick=()=>{
   alert('No se cargó el módulo XLSX; se exportó CSV compatible con Excel.');
  }
 };
-$('backup').onclick=()=>download(JSON.stringify({app:'ThermoReport Voice',version:'0.3.0',records},null,2),'ThermoReport_Voice_respaldo.json','application/json');
+$('backup').onclick=()=>download(JSON.stringify({app:'ThermoReport Voice',version:'0.4.0',records},null,2),'ThermoReport_Voice_respaldo.json','application/json');
 function download(data,name,type){const blob=new Blob([data],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+$('clearList').onclick=()=>{
+ if(!records.length){alert('La lista ya está vacía.');return}
+ const ok=confirm('¿Seguro que quieres borrar TODOS los '+records.length+' puntos guardados de esta lista? Esta acción no se puede deshacer. Asegúrate de haber exportado el Excel o guardado un respaldo JSON.');
+ if(!ok)return;
+ records=[];
+ editingIndex=null;
+ persist();
+ $('save').textContent='＋ Guardar equipo';
+ clearFields();
+ $('transcript').value='';
+ $('status').textContent='Lista vaciada. El nombre del equipo se conserva para comenzar una nueva inspección.';
+};
 $('importBtn').onclick=()=>$('importFile').click();
 $('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.records))throw Error();if(confirm('¿Reemplazar la captura actual con '+d.records.length+' registros del respaldo?')){records=d.records;persist()}}catch(err){alert('El archivo no parece ser un respaldo válido de ThermoReport Voice.')}e.target.value=''};
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});
