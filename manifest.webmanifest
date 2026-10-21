@@ -1,7 +1,7 @@
 {
-  "name": "PyroSpec ThermoReport Voice",
+  "name": "SEMCE ThermoReport Voice",
   "short_name": "ThermoReport",
-  "start_url": "./?v=050",
+  "start_url": "./?v=051",
   "display": "standalone",
   "background_color": "#f2f5f7",
   "theme_color": "#123047",

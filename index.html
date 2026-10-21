@@ -18,7 +18,7 @@ button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14p
 </style>
 </head>
 <body>
-<header><img class="brand-logo" src="./pyrospec-logo.png" alt="PyroSpec Ingeniería Termográfica"><h1>🎙️ ThermoReport Voice</h1><p>Captura de equipos por voz · Excel para ThermoReport</p></header>
+<header><img class="brand-logo" src="./semce-logo.png" alt="SEMCE.com Electrical Solutions"><h1>🎙️ ThermoReport Voice</h1><p>Captura de equipos por voz · Excel para ThermoReport</p></header>
 <main>
 <section class="card">
 <h2>1. Datos generales</h2>
@@ -44,7 +44,19 @@ button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14p
 <button type="button" class="secondary field-record" data-target="equipment" style="margin-top:7px">🎙️ Grabar equipo</button>
 </div>
 <div><label for="identification">Identificación</label><input id="identification" placeholder="Punto o conexión inspeccionada"><button type="button" class="secondary field-record" data-target="identification" style="margin-top:7px">🎙️ Grabar identificación</button></div>
-<div><label for="capacity">Capacidad</label><input id="capacity" placeholder="Ej. 440 VCA, 2,000 kVA, 3,200 Amp."><button type="button" class="secondary field-record" data-target="capacity" style="margin-top:7px">🎙️ Grabar capacidad</button></div>
+<div>
+<label for="capacity">Capacidad</label>
+<input id="capacity" placeholder="Selecciona una opción o escribe otra">
+<div class="grid two capacity-presets" style="margin-top:8px">
+<button type="button" class="secondary capacity-option">127 VCA</button>
+<button type="button" class="secondary capacity-option">220 VCA</button>
+<button type="button" class="secondary capacity-option">440 VCA</button>
+<button type="button" class="secondary capacity-option">13,200 VCA</button>
+<button type="button" class="secondary capacity-option">23,000 VCA</button>
+<button type="button" class="secondary capacity-option">400 kVAr</button>
+</div>
+<p class="muted small">También puedes escribir manualmente una capacidad diferente.</p>
+</div>
 </div>
 <details style="margin-top:12px"><summary><strong>Campos manuales opcionales</strong></summary>
 <div class="grid two" style="margin-top:12px">
@@ -221,6 +233,7 @@ function startFieldDictation(target){
  try{rec.start()}catch(e){clearTimeout(timer);$('status').textContent=`No se pudo iniciar el dictado de ${target}. Usa el micrófono del teclado del iPhone.`;field.focus()}
 }
 document.querySelectorAll('.field-record').forEach(btn=>btn.addEventListener('click',()=>startFieldDictation(btn.dataset.target)));
+document.querySelectorAll('.capacity-option').forEach(btn=>btn.addEventListener('click',()=>{$('capacity').value=btn.textContent.trim();$('capacity').focus();}));
 $('dictate').onclick=()=>{
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SR){$('status').textContent='El reconocimiento de voz web no está disponible. Usa los botones Grabar por campo o el dictado del teclado.';$('transcript').focus();return}
