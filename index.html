@@ -13,7 +13,7 @@
 *{box-sizing:border-box}body{margin:0}header{background:#123047;color:white;padding:14px 18px 18px;text-align:center}header h1{margin:8px 0 0;font-size:1.35rem}header p{margin:5px 0 0;color:#d6e4ec;font-size:.95rem}.brand-logo{display:block;width:min(230px,68vw);height:auto;max-height:190px;object-fit:contain;margin:0 auto 8px;border-radius:10px;background:#fff}
 main{max-width:720px;margin:auto;padding:14px;display:grid;gap:13px}.card{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 9px #122b3b12}
 h2{font-size:1.1rem;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr;gap:10px}label{display:block;font-size:.9rem;font-weight:650;margin-bottom:5px}input,textarea,select{width:100%;font:inherit;font-size:1rem;padding:13px;border:1px solid #bdc9d1;border-radius:10px;background:white;color:#152433}textarea{min-height:76px;resize:vertical}
-button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14px;min-height:54px;cursor:pointer;width:100%}.primary{background:#126a88;color:white}.secondary{background:#e4edf1;color:#123047}.success{background:#18794e;color:white}.danger{background:#fff0ee;color:#9b2c21}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.actions input{min-width:0}.field-record{font-size:.92rem;min-height:46px;padding:10px}.record{border:1px solid #d6e0e5;border-radius:12px;padding:12px;margin-top:9px}.record strong{display:block}.muted{color:#526573;font-size:.9rem}.status{padding:10px;border-radius:10px;background:#edf4f7;font-size:.92rem;margin-top:10px}.pill{display:inline-block;padding:4px 9px;border-radius:99px;background:#e4edf1;font-size:.8rem;font-weight:700}.small{font-size:.82rem}.hide{display:none!important}
+button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14px;min-height:54px;cursor:pointer;width:100%}.primary{background:#126a88;color:white}.secondary{background:#e4edf1;color:#123047}.success{background:#18794e;color:white}.danger{background:#fff0ee;color:#9b2c21}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.actions input{min-width:0}.identification-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:7px}.identification-option{font-size:.88rem;line-height:1.2;padding:12px 8px;min-height:52px}.field-record{font-size:.92rem;min-height:46px;padding:10px}.record{border:1px solid #d6e0e5;border-radius:12px;padding:12px;margin-top:9px}.record strong{display:block}.muted{color:#526573;font-size:.9rem}.status{padding:10px;border-radius:10px;background:#edf4f7;font-size:.92rem;margin-top:10px}.pill{display:inline-block;padding:4px 9px;border-radius:99px;background:#e4edf1;font-size:.8rem;font-weight:700}.small{font-size:.82rem}.hide{display:none!important}
 @media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -43,7 +43,15 @@ button{font:inherit;font-weight:750;border:0;border-radius:13px;padding:15px 14p
 <div class="actions"><input id="equipment" placeholder="Nombre o descripción del equipo"><button id="clearEquipment" type="button" class="secondary">Limpiar equipo</button></div>
 <button type="button" class="secondary field-record" data-target="equipment" style="margin-top:7px">🎙️ Grabar equipo</button>
 </div>
-<div><label for="identification">Identificación</label><input id="identification" placeholder="Punto o conexión inspeccionada"><button type="button" class="secondary field-record" data-target="identification" style="margin-top:7px">🎙️ Grabar identificación</button></div>
+<div>
+<label for="identification">Identificación</label>
+<input id="identification" placeholder="Punto o conexión inspeccionada" autocomplete="off">
+<div class="identification-presets" aria-label="Insertar descripción de vista general">
+<button type="button" class="secondary identification-option" data-insert="Vista general">Vista general</button>
+<button type="button" class="secondary identification-option" data-insert="Vista general superior">Vista general superior</button>
+<button type="button" class="secondary identification-option" data-insert="Vista general inferior">Vista general inferior</button>
+</div>
+</div>
 <div>
 <label for="capacity">Capacidad</label>
 <input id="capacity" placeholder="Selecciona una opción o escribe otra">
@@ -232,6 +240,42 @@ function startFieldDictation(target){
  rec.onend=()=>{clearTimeout(timer);if(!received){$('status').textContent=`No se recibió texto para ${target}. Toca el campo y usa el micrófono del teclado del iPhone.`;field.focus()}};
  try{rec.start()}catch(e){clearTimeout(timer);$('status').textContent=`No se pudo iniciar el dictado de ${target}. Usa el micrófono del teclado del iPhone.`;field.focus()}
 }
+// Inserta las frases de vista general sin borrar el contenido existente.
+const identificationField = $('identification');
+let identificationCursor = {start: 0, end: 0};
+function rememberIdentificationCursor(){
+  identificationCursor = {
+    start: identificationField.selectionStart ?? identificationField.value.length,
+    end: identificationField.selectionEnd ?? identificationField.value.length
+  };
+}
+['focus','click','keyup','select','input'].forEach(eventName =>
+  identificationField.addEventListener(eventName, rememberIdentificationCursor)
+);
+document.querySelectorAll('.identification-option').forEach(btn => {
+  btn.addEventListener('pointerdown', event => {
+    rememberIdentificationCursor();
+    // Mantiene el foco y la posición del cursor en el campo al tocar el botón.
+    event.preventDefault();
+  });
+  btn.addEventListener('click', () => {
+    const phrase = btn.dataset.insert;
+    const value = identificationField.value;
+    const start = Math.min(identificationCursor.start, value.length);
+    const end = Math.min(Math.max(identificationCursor.end, start), value.length);
+    const before = value.slice(0, start);
+    const after = value.slice(end);
+    const prefix = before && !/\s$/.test(before) ? ' ' : '';
+    const suffix = after && !/^\s/.test(after) ? ' ' : '';
+    const insertion = prefix + phrase + suffix;
+    identificationField.setRangeText(insertion, start, end, 'end');
+    identificationField.focus();
+    const caret = start + insertion.length;
+    identificationField.setSelectionRange(caret, caret);
+    rememberIdentificationCursor();
+  });
+});
+
 document.querySelectorAll('.field-record').forEach(btn=>btn.addEventListener('click',()=>startFieldDictation(btn.dataset.target)));
 document.querySelectorAll('.capacity-option').forEach(btn=>btn.addEventListener('click',()=>{$('capacity').value=btn.textContent.trim();$('capacity').focus();}));
 $('dictate').onclick=()=>{
